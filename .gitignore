@@ -1,0 +1,6 @@
+sequence*
+A368245_l**.cpp
+*.o
+*.obj
+*.exe
+*.out
