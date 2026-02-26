@@ -229,6 +229,12 @@ inline int fast_log2(unsigned long long x)
 	return std::bit_width(x) - 1;
 }
 
+inline long long fast_abs(long long x)
+{
+	long long mask = x >> 63;
+	return (x + mask) ^ mask;
+}
+
 void process_line(
 	u_int8_t *line,
 	const unsigned long long max,
@@ -237,7 +243,7 @@ void process_line(
 	unsigned long long a;
 
 	// approximate maximum digit sum difference
-	long double max_ax = 9.0L * ceill(n * log10l(max));
+	//long double max_ax = 9.0L * ceill(n * log10l(max));
 
 #ifdef SKIP_USELESS
 	// Skips useless zones
@@ -275,7 +281,7 @@ void process_line(
 
 
 		unsigned long long result = sum_hex_digits_power(a, n);
-		unsigned long long difference = result - n - a;
+		long long difference = result - n - a;
 
 		if (!difference) // We found a working case
 		{
@@ -286,21 +292,20 @@ void process_line(
 			gmp_fprintf(stderr, "%Zd - %hu\n", r, n);
 
 			//fwrite(&zero, 1, 1, stdout);
-			*line++ = (u_int8_t)0;
+			*line++ = (uint8_t)0;
 		}
 		else
 		{
 			// Distribution to help visualise the range
-			long double ax = fabsl((long double)difference);
-			long double y = 180.0L * log1pl(ax) / log1pl(max_ax);
+			// It's kinna ugly (only 63 levels) but its fast
+			// The *16 limits greatly the range but hey,
+			// its there for visualisation bot accuracy
+			uint16_t y = fast_log2(fast_abs(difference)) << 4;
 
-			// Clamp y to [0, 180] first, then add 55 to get [55, 235]
-			if (y > 180.0L)
-				y = 180.0L;
-			if (y < 0.0L)
-				y = 0.0L;
+			// Clamp y to [0, 200] first, then add 35 to get [55, 255]
+			if (y > 200) y = 200;
 
-			u_int8_t byte_val = (u_int8_t)roundl(y + 55.0L);
+			uint8_t byte_val = (uint8_t)(y + 55);
 			//fwrite(&byte_val, 1, 1, stdout);
 			*line++ = byte_val;
 		}
