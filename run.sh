@@ -10,7 +10,7 @@ trap "rm -f $BUFFER" EXIT
 echo "Using RAM buffer: $BUFFER"
 
 echo "Running C++ and Python in parallel"
-./sequence_SIMD 5000 300 > out_hex.pgm 2> "$BUFFER" &
+./sequence_SIMD 3000 200 > out.pgm 2> "$BUFFER" &
 CPPID=$!
 
 while ! test -f "$BUFFER"; do
@@ -19,7 +19,7 @@ while ! test -f "$BUFFER"; do
 done
 
 echo "Running Python"
-python -u checker.py --base 16 < "$BUFFER" > number_found.log &
+python -u checker.py --base 10 < "$BUFFER" > number_found.log &
 PYID=$!
 
 wait $CPPID

@@ -63,10 +63,13 @@ It is also multithreaded.
 
 You can find the compilation command directly on the beginning
 of the source code.
+To switch the program from hexadecimal (default) to decimal mode, add `-DDEC`.
+It also supports octal (`-DOCT`) mode.
+at the compilation (more info on the top of the code).
 
 Command to execute alone:
 ```bash
-./sequence_SIMD 10000 500 > out_hex.pgm
+./sequence_SIMD 10000 500 > out.pgm
 ```
 where 1000 is the max base and 300 is the max exp (base^exp).
 out_hex is the graph output: #000 is a match, dark is close, white is far.
@@ -74,7 +77,7 @@ It also outputs in `stderr` the matches.
 
 There is also a Python script to verify the numbers found
 ```bash
-(./sequence_SIMD 5000 300 > out_hex.pgm >/dev/null) 2>&1 | python checker.py --base 16
+(./sequence_SIMD 5000 300 > out.pgm >/dev/null) 2>&1 | python checker.py --base 16
 ```
 But to use the full sped of the CPP program, you should use [`run.sh`].
 The Python is **VERY** slow with **HUGE** numbers, like the second one shown
@@ -82,6 +85,13 @@ The Python is **VERY** slow with **HUGE** numbers, like the second one shown
 
 The file `numbers_found.log` contains only numbers checked by the Python script
 but the C++ code can give you numbers **MUCH** larger.
+
+The 2 000x00 images seems wrong; they were made using doubles so there might be
+imprecise and they were not checked. On the other hand, I don't understant
+why there are weird lines on the outs, both for hex and decimal.
+
+I have the original program that used u64 that was 36ko, now it's 15ko compiled
+with -O3.
 
 Licensied under the GPL-v3 license.
 
