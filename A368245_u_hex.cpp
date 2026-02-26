@@ -6,6 +6,8 @@
 #include <cstdint>
 #include <bit>
 #include <gmp.h>
+#include <thread>
+#include <vector>
 
 // g++ A368245_u_simd_hex.cpp -o sequence_SIMD -Wall -Wextra -fuse-ld=lld -Wshadow -g -O3 -std=c++20  -march=native -ffast-math -lgmp
 
@@ -228,9 +230,9 @@ inline int fast_log2(unsigned long long x)
 }
 
 void process_line(
-	unsigned long long max,
-	unsigned short n,
-	const unsigned char zero)
+	u_int8_t *line,
+	const unsigned long long max,
+	const unsigned short n)
 {
 	unsigned long long a;
 
@@ -283,7 +285,8 @@ void process_line(
 			// Print the result (decimal)
 			gmp_fprintf(stderr, "%Zd - %hu\n", r, n);
 
-			fwrite(&zero, 1, 1, stdout);
+			//fwrite(&zero, 1, 1, stdout);
+			*line++ = (u_int8_t)0;
 		}
 		else
 		{
@@ -297,8 +300,9 @@ void process_line(
 			if (y < 0.0L)
 				y = 0.0L;
 
-			unsigned char byte_val = (unsigned char)roundl(y + 55.0L);
-			fwrite(&byte_val, 1, 1, stdout);
+			u_int8_t byte_val = (u_int8_t)roundl(y + 55.0L);
+			//fwrite(&byte_val, 1, 1, stdout);
+			*line++ = byte_val;
 		}
 	}
 
@@ -329,15 +333,35 @@ int main(int argc, char **argv)
 {
 	if (argc != 3)
 		return -1;
-	const unsigned short n_max = atoi(argv[2]);
+	const unsigned n_threads = std::max(std::thread::hardware_concurrency(),1u);
+	// Make n divisible by n_threads
+	const unsigned short n_max = (atoi(argv[2]) / n_threads) * n_threads;
 	const unsigned long long max = (uint64_t)atoll(argv[1]);
-	const unsigned char zero = 0;
 
-	printf("P5\n%llu %hu\n255\n", max - 1ULL, n_max - 2);
+	printf("P5\n%llu %hu\n255\n", max - 1ULL, n_max);
 
-	for (unsigned short n = 2; n < n_max; n++)
+	// Start at pow 2: any n^0 is 1 so only 10^x flags
+	// Any n^1 is n so only 1-9 digits flags
+	for (unsigned short n = 2; n < n_max+2; n += n_threads)
 	{
-		process_line(max, n, zero);
+		u_int8_t line[n_threads][max]; 
+		std::vector<std::thread> threads;
+
+		for (u_int8_t i = 0; i < n_threads; i++)
+		{
+			// WARN: dont put max too high otherwise
+			// you will need To of RAM (and RAM is expensive
+			// right now, 2026-02) (yes today we muggles
+			// put 16gig of RAM in our computers)
+		
+			threads.emplace_back(process_line, (u_int8_t*)line[i], max, i+n);
+		}
+
+		for (u_int8_t i = 0; i < n_threads; i++)
+		{
+			threads[i].join();
+			fwrite(line[i], 1, max - 1ULL, stdout);
+		}
 	}
 
 	fprintf(stderr, "\n");
